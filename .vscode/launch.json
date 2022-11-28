@@ -1,0 +1,146 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Launch TorquePersistentBoolean",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.TorquePersistentBoolean",
+      "projectName": "Clutch-2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch Test",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.test.Test",
+      "projectName": "Clutch-2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueSlewLimiter",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.TorqueSlewLimiter",
+      "projectName": "Clutch-2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorquePID",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.TorquePID",
+      "projectName": "Clutch-2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueController",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.sensors.TorqueController",
+      "projectName": "Clutch-2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueStickHeading",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.TorqueStickHeading",
+      "projectName": "Clutch-2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch Test",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.test.Test",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch ClimberTest",
+      "request": "launch",
+      "mainClass": "org.texastorque.subsystems.test.ClimberTest",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueSwerveModule2021",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.modules.TorqueSwerveModule2021",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueMiscUtils",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.util.TorqueMiscUtils",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch Test",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.control.Test",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch ControlTests",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.util.ControlTests",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueMathUtil",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.util.TorqueMathUtil",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueUtils",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.util.TorqueUtils",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch TorqueMathUtilTests",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.util.TorqueMathUtilTests",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "java",
+      "name": "Launch Enum",
+      "request": "launch",
+      "mainClass": "org.texastorque.subsystems.Enum",
+      "projectName": "TexasTorque2022++"
+    },
+    {
+      "type": "java",
+      "name": "Launch SwerveModuleTests",
+      "request": "launch",
+      "mainClass": "org.texastorque.torquelib.modules.test.SwerveModuleTests",
+      "projectName": "TexasTorque2022++"
+    },
+    {
+      "type": "java",
+      "name": "Launch Test",
+      "request": "launch",
+      "mainClass": "org.texastorque.inputs.Test",
+      "projectName": "TexasTorque2022"
+    },
+    {
+      "type": "wpilib",
+      "name": "WPILib Desktop Debug",
+      "request": "launch",
+      "desktop": true
+    },
+    {
+      "type": "wpilib",
+      "name": "WPILib roboRIO Debug",
+      "request": "launch",
+      "desktop": false
+    }
+  ]
+}

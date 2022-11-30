@@ -9,6 +9,8 @@ package org.texastorque;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+
+import org.texastorque.subsystems.Drivebase;
 import org.texastorque.torquelib.base.TorqueDirection;
 import org.texastorque.torquelib.base.TorqueInput;
 import org.texastorque.torquelib.control.TorqueClick;
@@ -32,11 +34,24 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     }
 
 
-    private final TorqueTraversableSelection<Double> speedSettings = new TorqueTraversableSelection<Double>(0, 1., .75, .5, .25);
+    private final TorqueTraversableSelection<Double> speedSettings 
+            = new TorqueTraversableSelection<Double>(0, 1.0, 0.75, 0.5, 0.25);
+
+    private final TorqueClick toggleRotationLock = new TorqueClick();
 
     public void updateDrivebase() { 
-    
-    
+
+        final double speedSetting = speedSettings.calculate(driver.isRightBumperDown(), driver.isLeftBumperDown());
+
+        final double xVelocity = -driver.getLeftXAxis() * Drivebase.MAX_VELOCITY * speedSetting;
+        final double yVelocity = driver.getLeftYAxis() * Drivebase.MAX_VELOCITY * speedSetting;
+        final double rotationVelocity = driver.getRightXAxis() * Drivebase.MAX_ANGULAR_VELOCITY * speedSetting;
+
+        drivebase.inputSpeeds = new ChassisSpeeds(xVelocity, yVelocity, rotationVelocity);
+
+        if (toggleRotationLock.calculate(driver.isAButtonDown()))
+            drivebase.isRotationLocked = !drivebase.isRotationLocked;
+
     }
 
     public static final synchronized Input getInstance() {

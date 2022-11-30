@@ -79,7 +79,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private static volatile Drivebase instance;
 
-    public final double
+    public static final double
             WIDTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
             LENGTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
 
@@ -134,7 +134,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public State state = State.FIELD_RELATIVE;
     public ChassisSpeeds inputSpeeds = new ChassisSpeeds(0, 0, 0);
     public boolean isRotationLocked = false;
-    public double maxVeloPercent = 1;
 
     /**
      * Constructor called on initialization.
@@ -222,12 +221,17 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             bl.zero();
             br.zero();
         } else {
-            double requestedRotation = inputSpeeds.omegaRadiansPerSecond;
 
-            if (isRotationLocked && Math.abs(requestedRotation) < 0.1)
-                requestedRotation = rotationalPID.calculate(gyro.getRotation2d().getRadians(), lastRotationRadians);
-            else lastRotationRadians = 0;
+            // Calculate the locked rotation with the PID.
+            final double realRotationRadians = gyro.getRotation2d().getRadians();
 
+            if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) == 0)
+                inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
+                        realRotationRadians, lastRotationRadians);
+
+            else lastRotationRadians = realRotationRadians;
+
+            // Calculate field relative vectors.
             if (state == State.ROBOT_RELATIVE)
                     inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                             inputSpeeds.vxMetersPerSecond,
@@ -235,10 +239,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                             inputSpeeds.omegaRadiansPerSecond,
                             gyro.getRotation2dClockwise().times(-1));      
 
+            // Convert robot vectors to module vectors.
             swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
 
-            SwerveDriveKinematics.desaturateWheelSpeeds(swerveStates, MAX_VELOCITY 
-                    * TorqueMath.constrain(maxVeloPercent, 0, 1));
+            SwerveDriveKinematics.desaturateWheelSpeeds(swerveStates, MAX_VELOCITY);
 
             fl.setDesiredState(swerveStates[0]);
             fr.setDesiredState(swerveStates[1]);

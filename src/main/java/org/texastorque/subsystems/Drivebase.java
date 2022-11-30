@@ -251,6 +251,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         }
     }
 
+    public SwerveDrivePoseEstimator getPoseEstimator() { return poseEstimator; }
+
+    public Pose2d getPose() { return poseEstimator.getEstimatedPosition(); }
+
     public static synchronized final Drivebase getInstance() {
         return instance == null ? instance = new Drivebase() : instance;
     }

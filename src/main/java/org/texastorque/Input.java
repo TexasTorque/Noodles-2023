@@ -2,7 +2,7 @@
  * Copyright 2022 Texas Torque.
  * 
  * This file is part of Paddlefoot-2022, which is not licensed for distribution.
- * For more details, see ./license.txt or write <jus@gtsbr.org>.
+ * For more details, see ./license.txt or write <jus@justusl.com>.
  */
 package org.texastorque;
 
@@ -29,6 +29,14 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     @Override
     public final void update() {
+    }
+
+
+    private final TorqueTraversableSelection<Double> speedSettings = new TorqueTraversableSelection<Double>(0, 1., .75, .5, .25);
+
+    public void updateDrivebase() { 
+    
+    
     }
 
     public static final synchronized Input getInstance() {

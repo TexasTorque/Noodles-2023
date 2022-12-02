@@ -57,15 +57,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  *  π/2 ← * → 3π/2
  *        ↓
  *        π
- * 
- * The rotation of the modules is [-π, π] radians, with 0 being straight ahead
- * 
- *        0
- *        ↑
- * -π/2 ← * → π/2
- *        ↓
- *     -π or π
- * 
+ *
  * -- States --
  * FIELD_RELATIVE  Field relative mode, where the robot's heading is relative to the field.
  * ROBOT_RELATIVE  Robot relative mode, where the robot's heading is relative to itself.
@@ -155,17 +147,19 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularVelocity = MAX_ANGULAR_VELOCITY;
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
-        // Configure all the swerve modules.
-        //                              Drive|Turn|Encoder
-        fl = new TorqueSwerveModule2022(1,    2,   1,     config);
-        fr = new TorqueSwerveModule2022(3,    4,   2,     config);
-        bl = new TorqueSwerveModule2022(5,    6,   3,     config);
-        br = new TorqueSwerveModule2022(7,    8,   4,     config);
+        // Configure all the swerve modules            Drive|Turn|Encoder|Offset
+        fl = new TorqueSwerveModule2022("Front Left",  1,    2,   1,      0.0,   config);
+        fr = new TorqueSwerveModule2022("Front Right", 3,    4,   2,      0.0,   config);
+        bl = new TorqueSwerveModule2022("Back Left",   5,    6,   3,      0.0,   config);
+        br = new TorqueSwerveModule2022("Back Right",  7,    8,   4,      0.0,   config);
+        // The offsets need to be found experimentally.
+        // With no power being set to the module position the wheel 100% straight ahead 
+        // and the offset is the reading of the cancoder.
 
         // Configure the kinematics and poseEstimator objects.
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
 
-        poseEstimator = new SwerveDrivePoseEstimator(gyro.getRotation2dClockwise().times(-1),
+        poseEstimator = new SwerveDrivePoseEstimator(gyro.getHeadingCCW(),
                 INITIAL_POS, kinematics, STATE_STDS,
                 LOCAL_STDS, VISION_STDS);
 
@@ -186,9 +180,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      * and stuff and logs to SmartDashboard and Shuffleboard.
      */
     private void updateFeedback() { 
-        poseEstimator.update(gyro.getRotation2dClockwise().times(-1),
-                fl.getState(), fr.getState(), bl.getState(), br.getState()
-        );
+        poseEstimator.update(gyro.getHeadingCCW(), fl.getState(), fr.getState(), bl.getState(), br.getState());
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
 
@@ -237,8 +229,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                             inputSpeeds.vxMetersPerSecond,
                             inputSpeeds.vyMetersPerSecond,
                             inputSpeeds.omegaRadiansPerSecond,
-                            gyro.getRotation2dClockwise().times(-1));      
-
+                            gyro.getHeadingCCW());  
+                            // Or just get counter clockwise LMAO
+            
             // Convert robot vectors to module vectors.
             swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
 
@@ -251,11 +244,26 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         }
     }
 
-    public SwerveDrivePoseEstimator getPoseEstimator() { 
-        updateFeedback();
-        return poseEstimator; 
+    // Interface with the robot position estimator.
+
+    public void resetPose(final Pose2d pose) {
+        gyro.reset();
+        gyro.setOffsetCCW(pose.getRotation());
+        poseEstimator.resetPosition(pose, gyro.getHeadingCCW());
     }
 
+    public void resetPose(final Rotation2d rotation) {
+        resetPose(new Pose2d(getPose().getTranslation(), rotation));
+    }
+
+    public void resetPose(final Translation2d translation) {
+        resetPose(new Pose2d(translation, gyro.getHeadingCCW()));
+    }
+
+    public Pose2d getPose() {
+        updateFeedback();
+        return poseEstimator.getEstimatedPosition();
+    }
 
     public static synchronized final Drivebase getInstance() {
         return instance == null ? instance = new Drivebase() : instance;

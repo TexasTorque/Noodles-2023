@@ -12,6 +12,7 @@ import com.pathplanner.lib.PathPlannerTrajectory.PathPlannerState;
 import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.Timer;
@@ -21,6 +22,7 @@ import org.texastorque.subsystems.Drivebase;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.control.TorquePID;
 import org.texastorque.torquelib.sensors.TorqueNavXGyro;
+import org.texastorque.torquelib.util.TorqueUtil;
 
 public final class Path extends TorqueCommand implements Subsystems {
     private final PIDController xController = TorquePID.create(1).build();
@@ -58,16 +60,13 @@ public final class Path extends TorqueCommand implements Subsystems {
         timer.start();
         if (!resetOdometry) return;
         drivebase.state = Drivebase.State.FIELD_RELATIVE;
-        TorqueNavXGyro.getInstance().setAngleOffset(360 - trajectory.getInitialPose().getRotation().getDegrees());
-        drivebase.getPoseEstimator().resetPosition(trajectory.getInitialState().poseMeters,
-                                              trajectory.getInitialState().holonomicRotation);
+        drivebase.resetPose(extractInitialPose(trajectory));
     }
 
     @Override
     protected final void continuous() {
         final PathPlannerState current = (PathPlannerState)trajectory.sample(timer.get());
-        final ChassisSpeeds speeds =
-                controller.calculate(drivebase.getPoseEstimator().getEstimatedPosition(), current, current.holonomicRotation);
+        final ChassisSpeeds speeds = controller.calculate(drivebase.getPose(), current, current.holonomicRotation);
         // speeds = new ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, speeds.omegaRadiansPerSecond);
         drivebase.inputSpeeds = speeds;
     }
@@ -81,5 +80,10 @@ public final class Path extends TorqueCommand implements Subsystems {
     protected final void end() {
         timer.stop();
         drivebase.inputSpeeds = new ChassisSpeeds();
+    }
+
+    private static final Pose2d extractInitialPose(final PathPlannerTrajectory trajectory) {
+        final PathPlannerState state = trajectory.getInitialState();
+        return new Pose2d(state.poseMeters.getTranslation(), state.holonomicRotation); 
     }
 }

@@ -148,10 +148,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
         // Configure all the swerve modules            Drive|Turn|Encoder|Offset
-        fl = new TorqueSwerveModule2022("Front Left",  1,    2,   1,      0.0,   config);
-        fr = new TorqueSwerveModule2022("Front Right", 3,    4,   2,      0.0,   config);
-        bl = new TorqueSwerveModule2022("Back Left",   5,    6,   3,      0.0,   config);
-        br = new TorqueSwerveModule2022("Back Right",  7,    8,   4,      0.0,   config);
+        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10,     0.0,   config);
+        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   -1,     0.0,   config);
+        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9,      0.0,   config);
+        br = new TorqueSwerveModule2022("Back Right",  7,    8,   -1,     0.0,   config);
         // The offsets need to be found experimentally.
         // With no power being set to the module position the wheel 100% straight ahead 
         // and the offset is the reading of the cancoder.
@@ -196,6 +196,26 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         tab.add("Rot. Locked", isRotationLocked).withPosition(0, 1);
     }
 
+    private void test() {
+
+        final var ctrl = Input.getInstance().getDriver();
+        final double lx = ctrl.getLeftXAxis();
+        final double ly = ctrl.getLeftYAxis();
+        final double rx = ctrl.getRightXAxis();
+        final double ry = ctrl.getRightYAxis();
+
+        final double rot = rx == 0 && ry == 0 ? 0 : Math.atan2(rx, -ry); // rotation of the left stick radians
+        SmartDashboard.putNumber("Raw rot", rot);
+
+        final var state = new SwerveModuleState(MAX_VELOCITY * ly, new Rotation2d(rot));
+
+        fl.setDesiredState(state);
+        fr.setDesiredState(state);
+        bl.setDesiredState(state);
+        br.setDesiredState(state);
+
+    }
+
     /**
      * Called every loop.
      * 
@@ -206,42 +226,44 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     @Override
     public final void update(final TorqueMode mode) {
         updateFeedback();
+
+        test();
         
-        if (state == State.ZERO) {
-            fl.zero();
-            fr.zero();
-            bl.zero();
-            br.zero();
-        } else {
+        // if (state == State.ZERO) {
+        //     fl.zero();
+        //     fr.zero();
+        //     bl.zero();
+        //     br.zero();
+        // } else {
 
-            // Calculate the locked rotation with the PID.
-            final double realRotationRadians = gyro.getRotation2d().getRadians();
+        //     // Calculate the locked rotation with the PID.
+        //     final double realRotationRadians = gyro.getRotation2d().getRadians();
 
-            if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) == 0)
-                inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
-                        realRotationRadians, lastRotationRadians);
+        //     if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) == 0)
+        //         inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
+        //                 realRotationRadians, lastRotationRadians);
 
-            else lastRotationRadians = realRotationRadians;
+        //     else lastRotationRadians = realRotationRadians;
 
-            // Calculate field relative vectors.
-            if (state == State.ROBOT_RELATIVE)
-                    inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-                            inputSpeeds.vxMetersPerSecond,
-                            inputSpeeds.vyMetersPerSecond,
-                            inputSpeeds.omegaRadiansPerSecond,
-                            gyro.getHeadingCCW());  
-                            // Or just get counter clockwise LMAO
+        //     // Calculate field relative vectors.
+        //     if (state == State.ROBOT_RELATIVE)
+        //             inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+        //                     inputSpeeds.vxMetersPerSecond,
+        //                     inputSpeeds.vyMetersPerSecond,
+        //                     inputSpeeds.omegaRadiansPerSecond,
+        //                     gyro.getHeadingCCW());  
+        //                     // Or just get counter clockwise LMAO
             
-            // Convert robot vectors to module vectors.
-            swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
+        //     // Convert robot vectors to module vectors.
+        //     swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
 
-            SwerveDriveKinematics.desaturateWheelSpeeds(swerveStates, MAX_VELOCITY);
+        //     SwerveDriveKinematics.desaturateWheelSpeeds(swerveStates, MAX_VELOCITY);
 
-            fl.setDesiredState(swerveStates[0]);
-            fr.setDesiredState(swerveStates[1]);
-            bl.setDesiredState(swerveStates[2]);
-            br.setDesiredState(swerveStates[3]);
-        }
+        //     fl.setDesiredState(swerveStates[0]);
+        //     fr.setDesiredState(swerveStates[1]);
+        //     bl.setDesiredState(swerveStates[2]);
+        //     br.setDesiredState(swerveStates[3]);
+        // }
     }
 
     // Interface with the robot position estimator.

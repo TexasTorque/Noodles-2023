@@ -1,27 +1,18 @@
 /* Copyright 2022 Texas Torque.
-**
-* This file is part of Paddlefoot-2022, which is not licensed for distribution.
+*
+* This file is part of Swe-2022, which is not licensed for distribution.
 * For more details, see ./license.txt or write <jus@justusl.com>.
 */
 
 package org.texastorque.subsystems;
 
-import org.texastorque.Input;
 import org.texastorque.Subsystems;
-import org.texastorque.torquelib.base.TorqueDirection;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
-import org.texastorque.torquelib.control.TorqueClick;
 import org.texastorque.torquelib.control.TorquePID;
-import org.texastorque.torquelib.control.TorqueTimeout;
-import org.texastorque.torquelib.control.TorqueTraversableSelection;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022.TorqueSwerveModuleConfiguration;
-import org.texastorque.torquelib.modules.base.TorqueSwerveModule;
-import org.texastorque.torquelib.motors.TorqueNEO;
-import org.texastorque.torquelib.motors.legacy.TorqueSparkMax;
 import org.texastorque.torquelib.sensors.TorqueNavXGyro;
-import org.texastorque.torquelib.util.TorqueMath;
 import org.texastorque.torquelib.util.TorqueUtil;
 
 import edu.wpi.first.math.MatBuilder;
@@ -38,11 +29,6 @@ import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.PneumaticsModuleType;
-import edu.wpi.first.wpilibj.Solenoid;
-import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.WidgetType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -86,10 +72,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public static final Pose2d INITIAL_POS = new Pose2d(2.0, 2.0, new Rotation2d(0.0));
 
     private final Translation2d 
-            LOC_FL = new Translation2d(-11.815, -12.059),
-            LOC_FR = new Translation2d(-11.765, 12.057),
-            LOC_BL = new Translation2d(11.734, -12.025),
-            LOC_BR = new Translation2d(11.784, 12.027);
+            LOC_FL = new Translation2d(-11.815, -12.059), // (+, +)
+            LOC_FR = new Translation2d(-11.765, 12.057),  // (+, -)
+            LOC_BL = new Translation2d(11.734, -12.025),  // (-, +)
+            LOC_BR = new Translation2d(11.784, 12.027);   // (-, -)
 
     public static enum State {
         FIELD_RELATIVE, ROBOT_RELATIVE, ZERO;
@@ -131,7 +117,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      */
     private Drivebase() {
         // Configure the subsystem ShuffleboardTab
-        tab = Shuffleboard.getTab("Drivebase");
 
         // Configure the rotational lock PID.
         rotationalPID = TorquePID.create(0.02 / 4.0 / 180 * Math.PI).addDerivative(.001).build();

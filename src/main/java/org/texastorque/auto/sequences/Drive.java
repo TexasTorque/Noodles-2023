@@ -1,8 +1,8 @@
 /**
- * Copyright 2022 Texas Torque.
- *
- * This file is part of Clutch-2022, which is not licensed for distribution.
- * For more details, see ./license.txt or write <jus@gtsbr.org>.
+ * Copyright 2023 Texas Torque.
+ * 
+ * This file is part of Swerve-2023, which is not licensed for distribution.
+ * For more details, see ./license.txt or write <jus@justusl.com>.
  */
 package org.texastorque.auto.sequences;
 

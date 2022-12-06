@@ -81,16 +81,15 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             MAX_ANGULAR_ACCELERATION = 2.0 * Math.PI, // rad/s^2
             WHEEL_DIAMETER = Units.inchesToMeters(4.0), // m
 
-            M = 14.77;
-
+            MAGIC_NUMBER = 34;
 
     public static final Pose2d INITIAL_POS = new Pose2d(2.0, 2.0, new Rotation2d(0.0));
 
     private final Translation2d 
-            LOC_FL = new Translation2d(-WIDTH / 2.0, LENGTH / 2.0),
-            LOC_FR = new Translation2d(WIDTH / 2.0, LENGTH / 2.0),
-            LOC_BL = new Translation2d(-WIDTH / 2.0, -LENGTH / 2.0),
-            LOC_BR = new Translation2d(WIDTH / 2.0, -LENGTH / 2.0);
+            LOC_FL = new Translation2d(-11.815, -12.059),
+            LOC_FR = new Translation2d(-11.765, 12.057),
+            LOC_BL = new Translation2d(11.734, -12.025),
+            LOC_BR = new Translation2d(11.784, 12.027);
 
     public static enum State {
         FIELD_RELATIVE, ROBOT_RELATIVE, ZERO;
@@ -148,13 +147,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
         // Configure all the swerve modules            Drive|Turn|Encoder|Offset
-        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10,     0.0,   config);
-        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   -1,     0.0,   config);
-        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9,      0.0,   config);
-        br = new TorqueSwerveModule2022("Back Right",  7,    8,   -1,     0.0,   config);
+        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10, 0.0,  config);
+        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   11, 0.0, config);
+        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9, 0.0,   config);
+        br = new TorqueSwerveModule2022("Back Right",  7,    8,   12, 0.0, config);
         // The offsets need to be found experimentally.
         // With no power being set to the module position the wheel 100% straight ahead 
         // and the offset is the reading of the cancoder.
+        // This is used when the module is in absolute mode so we dont ever have to line it up.
 
         // Configure the kinematics and poseEstimator objects.
         kinematics = new SwerveDriveKinematics(LOC_BL, LOC_BR, LOC_FL, LOC_FR);
@@ -180,40 +180,22 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      * and stuff and logs to SmartDashboard and Shuffleboard.
      */
     private void updateFeedback() { 
+        SmartDashboard.putNumber("Gyro Angle", gyro.getHeadingCCW().getRadians());
+
         poseEstimator.update(gyro.getHeadingCCW(), fl.getState(), fr.getState(), bl.getState(), br.getState());
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
 
         final Translation2d estTranslation = poseEstimator.getEstimatedPosition().getTranslation();
 
-        tab.add("Est. Pos.", TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY()))
-                    .withWidget(BuiltInWidgets.kTextView).withPosition(0, 0);
+        // tab.add("Est. Pos.", TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY()))
+        //             .withWidget(BuiltInWidgets.kTextView).withPosition(0, 0);
 
-        tab.add("Input. Speeds.", TorqueUtil.group(2, 3, 
-                inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond))
-                    .withWidget(BuiltInWidgets.kTextView).withPosition(0, 0);
+        // tab.add("Input. Speeds.", TorqueUtil.group(2, 3, 
+        //         inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond))
+        //             .withWidget(BuiltInWidgets.kTextView).withPosition(0, 0);
 
-        tab.add("Rot. Locked", isRotationLocked).withPosition(0, 1);
-    }
-
-    private void test() {
-
-        final var ctrl = Input.getInstance().getDriver();
-        final double lx = ctrl.getLeftXAxis();
-        final double ly = ctrl.getLeftYAxis();
-        final double rx = ctrl.getRightXAxis();
-        final double ry = ctrl.getRightYAxis();
-
-        final double rot = rx == 0 && ry == 0 ? 0 : Math.atan2(rx, -ry); // rotation of the left stick radians
-        SmartDashboard.putNumber("Raw rot", rot);
-
-        final var state = new SwerveModuleState(MAX_VELOCITY * ly, new Rotation2d(rot));
-
-        fl.setDesiredState(state);
-        fr.setDesiredState(state);
-        bl.setDesiredState(state);
-        br.setDesiredState(state);
-
+        // tab.add("Rot. Locked", isRotationLocked).withPosition(0, 1);
     }
 
     /**
@@ -227,46 +209,46 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public final void update(final TorqueMode mode) {
         updateFeedback();
 
-        test();
+        SmartDashboard.putString("Input. Speeds.", TorqueUtil.group(2, 3, 
+                inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond));
+
+        if (state == State.ZERO) {
+            fl.zero();
+            fr.zero();
+            bl.zero();
+            br.zero();
+            return;
+        }
+
+        // Calculate the locked rotation with the PID.
+        final double realRotationRadians = gyro.getRotation2d().getRadians();
+
+        // if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) == 0)
+        //     inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
+        //             realRotationRadians, lastRotationRadians);
+        // else lastRotationRadians = realRotationRadians;
+
+        // // Calculate field relative vectors.
+        // if (state == State.ROBOT_RELATIVE)
+        //         inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+        //                 inputSpeeds.vxMetersPerSecond,
+        //                 inputSpeeds.vyMetersPerSecond,
+        //                 inputSpeeds.omegaRadiansPerSecond,
+        //                 gyro.getHeadingCCW());  
+        //                 // Or just get counter clockwise LMAO
         
-        // if (state == State.ZERO) {
-        //     fl.zero();
-        //     fr.zero();
-        //     bl.zero();
-        //     br.zero();
-        // } else {
+        // Convert robot vectors to module vectors.
+        swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
 
-        //     // Calculate the locked rotation with the PID.
-        //     final double realRotationRadians = gyro.getRotation2d().getRadians();
+        SwerveDriveKinematics.desaturateWheelSpeeds(swerveStates, MAX_VELOCITY);
 
-        //     if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) == 0)
-        //         inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
-        //                 realRotationRadians, lastRotationRadians);
-
-        //     else lastRotationRadians = realRotationRadians;
-
-        //     // Calculate field relative vectors.
-        //     if (state == State.ROBOT_RELATIVE)
-        //             inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-        //                     inputSpeeds.vxMetersPerSecond,
-        //                     inputSpeeds.vyMetersPerSecond,
-        //                     inputSpeeds.omegaRadiansPerSecond,
-        //                     gyro.getHeadingCCW());  
-        //                     // Or just get counter clockwise LMAO
-            
-        //     // Convert robot vectors to module vectors.
-        //     swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);
-
-        //     SwerveDriveKinematics.desaturateWheelSpeeds(swerveStates, MAX_VELOCITY);
-
-        //     fl.setDesiredState(swerveStates[0]);
-        //     fr.setDesiredState(swerveStates[1]);
-        //     bl.setDesiredState(swerveStates[2]);
-        //     br.setDesiredState(swerveStates[3]);
-        // }
+        fl.setDesiredState(swerveStates[0]);
+        fr.setDesiredState(swerveStates[1]);
+        bl.setDesiredState(swerveStates[2]);
+        br.setDesiredState(swerveStates[3]);
     }
 
-    // Interface with the robot position estimator.
+    // Interfacing with the robot position estimator.
 
     public void resetPose(final Pose2d pose) {
         gyro.reset();

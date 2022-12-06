@@ -31,6 +31,7 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     @Override
     public final void update() {
+        updateDrivebase();
     }
 
 
@@ -39,12 +40,12 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
     private final TorqueClick toggleRotationLock = new TorqueClick();
 
-    public void updateDrivebase() { 
+    private void updateDrivebase() { 
 
         final double speedSetting = speedSettings.calculate(driver.isRightBumperDown(), driver.isLeftBumperDown());
 
-        final double xVelocity = -driver.getLeftXAxis() * Drivebase.MAX_VELOCITY * speedSetting;
-        final double yVelocity = driver.getLeftYAxis() * Drivebase.MAX_VELOCITY * speedSetting;
+        final double xVelocity = -driver.getLeftYAxis() * Drivebase.MAX_VELOCITY * speedSetting;
+        final double yVelocity = driver.getLeftXAxis() * Drivebase.MAX_VELOCITY * speedSetting;
         final double rotationVelocity = driver.getRightXAxis() * Drivebase.MAX_ANGULAR_VELOCITY * speedSetting;
 
         drivebase.inputSpeeds = new ChassisSpeeds(xVelocity, yVelocity, rotationVelocity);

@@ -18,6 +18,8 @@ import org.texastorque.torquelib.util.TorqueUtil;
 import edu.wpi.first.math.MatBuilder;
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.Nat;
+import edu.wpi.first.math.VecBuilder;
+import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -28,6 +30,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
+import edu.wpi.first.math.numbers.N5;
+import edu.wpi.first.math.numbers.N7;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -95,6 +99,26 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private static final Matrix<N3, N1> STATE_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.05, 0.05, 0.02);
     private static final Matrix<N1, N1> LOCAL_STDS = new MatBuilder<>(Nat.N1(), Nat.N1()).fill(0.01);
     private static final Matrix<N3, N1> VISION_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.025, 0.025, 0.025);
+
+    // Alternate matricies for the pose estimator.
+
+    /**
+     * Standard deviations of model states. Increase these numbers to trust your model's state estimates less. This
+     * matrix is in the form [x, y, theta, s_0, ... s_n]ᵀ, with units in meters and radians, then meters.
+     */
+    // private static final Vector<N7> STATE_STDS = VecBuilder.fill(0.05, 0.05, Units.degreesToRadians(5), 0.05, 0.05, 0.05, 0.05);
+    
+    /**
+     * Standard deviations of the encoder and gyro measurements. Increase these numbers to trust sensor readings from
+     * encoders and gyros less. This matrix is in the form [theta, s_0, ... s_n], with units in radians followed by meters.
+     */
+    // private static final Vector<N5> LOCAL_STDS = VecBuilder.fill(Units.degreesToRadians(0.01), 0.01, 0.01, 0.01, 0.01);
+    
+    /**
+     * Standard deviations of the vision measurements. Increase these numbers to trust global measurements from vision
+     * less. This matrix is in the form [x, y, theta]ᵀ, with units in meters and radians.
+     */
+    // private static final Vector<N3> VISION_STDS = VecBuilder.fill(0.5, 0.5, Units.degreesToRadians(10));
 
     // The instances of the swerve modules.
     private final TorqueSwerveModule2022 fl, fr, bl, br;

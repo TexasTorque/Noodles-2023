@@ -6,6 +6,8 @@
  */
 package org.texastorque.subsystems;
 
+import java.util.Map;
+
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
 import org.texastorque.torquelib.base.TorqueSubsystem;
@@ -13,6 +15,7 @@ import org.texastorque.torquelib.control.TorquePID;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022.TorqueSwerveModuleConfiguration;
 import org.texastorque.torquelib.sensors.TorqueNavXGyro;
+import org.texastorque.torquelib.util.TorqueLog;
 import org.texastorque.torquelib.util.TorqueUtil;
 
 import edu.wpi.first.math.MatBuilder;
@@ -33,6 +36,7 @@ import edu.wpi.first.math.numbers.N3;
 import edu.wpi.first.math.numbers.N5;
 import edu.wpi.first.math.numbers.N7;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.shuffleboard.WidgetType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -197,14 +201,18 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         final Translation2d estTranslation = poseEstimator.getEstimatedPosition().getTranslation();
 
-        // tab.add("Est. Pos.", TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY()))
-        //             .withWidget(BuiltInWidgets.kTextView).withPosition(0, 0);
+        final String poseLog = TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY());
+        log.log("Est. Pos", poseLog, 3, 1); // can infer text
 
-        // tab.add("Input. Speeds.", TorqueUtil.group(2, 3, 
-        //         inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond))
-        //             .withWidget(BuiltInWidgets.kTextView).withPosition(0, 0);
+        final String speedsLog = TorqueUtil.group(2, 3, inputSpeeds.vxMetersPerSecond, 
+                inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond);
+        log.log("Input. Speeds.", speedsLog, 3, 1); // can infer text
 
-        // tab.add("Rot. Locked", isRotationLocked).withPosition(0, 1);
+        log.log("Rot. Locked", isRotationLocked, 1, 1); // can infer bool
+
+        log.log("Gyro Rad.", gyro.getHeadingCCW().getRadians(), 2, 1, TorqueLog.W_TEXT);
+
+        log.log("Gyro Dial.", gyro.getHeadingCCW().getDegrees(), 2, 2, TorqueLog.W_GYRO); 
     }
 
     /**

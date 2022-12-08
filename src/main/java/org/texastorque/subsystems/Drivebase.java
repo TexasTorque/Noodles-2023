@@ -210,6 +210,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         log.log("Rot. Locked", isRotationLocked, 1, 1); // can infer bool
 
+        SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians());
+
         log.log("Gyro Rad.", gyro.getHeadingCCW().getRadians(), 2, 1, TorqueLog.W_TEXT);
 
         log.log("Gyro Dial.", gyro.getHeadingCCW().getDegrees(), 2, 2, TorqueLog.W_GYRO); 

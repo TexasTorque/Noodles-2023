@@ -157,8 +157,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      * Constructor called on initialization.
      */
     private Drivebase() {
-        // Configure the subsystem ShuffleboardTab
-        log = new TorqueLog("Drive");
 
         // Configure the rotational lock PID.
         rotationalPID = TorquePID.create(0.02 / 4.0 / 180 * Math.PI).addDerivative(.001).build();
@@ -222,27 +220,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         poseEstimator.update(gyro.getHeadingCCW(), fl.getState(), fr.getState(), bl.getState(), br.getState());
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
-
-        final Translation2d estTranslation = poseEstimator.getEstimatedPosition().getTranslation();
-
-        final String poseLog = TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY());
-        log.log("Est. Pos", poseLog, 3, 1); // can infer text
-
-        final String speedsLog = TorqueUtil.group(2, 3, inputSpeeds.vxMetersPerSecond, 
-                inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond);
-        log.log("Input. Speeds.", speedsLog, 3, 1); // can infer text
-
-        log.log("Rot. Locked", isRotationLocked, 1, 1); // can infer bool
-        log.log("Rot. Direct", isDirectRotation, 1, 1);
-
-        SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians());
-
-        log.log("Gyro Rad.", gyro.getHeadingCCW().getRadians(), 2, 1, TorqueLog.W_TEXT);
-
-        log.log("Gyro Dial.", gyro.getHeadingCCW().getDegrees(), 2, 2, TorqueLog.W_GYRO); 
-
-        SmartDashboard.putNumber("X", estTranslation.getX());
-        SmartDashboard.putNumber("Y", estTranslation.getY());
     }
 
     /**

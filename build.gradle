@@ -10,6 +10,10 @@ targetCompatibility = JavaVersion.VERSION_11
 
 def ROBOT_MAIN_CLASS = "org.texastorque.Main"
 
+repositories {
+  maven { url 'https://jitpack.io' }
+}
+
 // Define my targets (RoboRIO) and artifacts (deployable files)
 // This is added by GradleRIO's backing project DeployUtils.
 deploy {
@@ -68,6 +72,8 @@ dependencies {
     simulationRelease wpi.sim.enableRelease()
 
     testImplementation 'junit:junit:4.12'
+
+    implementation "com.github.Oblarg:Oblog:5.1.0"
 }
 
 // Simulation configuration (e.g. environment variables).

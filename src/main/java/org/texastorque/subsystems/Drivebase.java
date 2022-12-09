@@ -69,21 +69,27 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             WIDTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
             LENGTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
 
-            MAX_VELOCITY = 4.0, // m/s
-            MAX_ACCELERATION = 2.0, // m/s^2
-            MAX_ANGULAR_VELOCITY = 2.0 * Math.PI, // rad/s
-            MAX_ANGULAR_ACCELERATION = 2.0 * Math.PI, // rad/s^2
+            MAX_VELOCITY = 20, // m/s
+            MAX_ACCELERATION = 20, // m/s^2
+            MAX_ANGULAR_VELOCITY = .1 * Math.PI, // rad/s
+            MAX_ANGULAR_ACCELERATION = .2 * Math.PI, // rad/s^2
             WHEEL_DIAMETER = Units.inchesToMeters(4.0), // m
 
             MAGIC_NUMBER = 34;
 
     public static final Pose2d INITIAL_POS = new Pose2d(2.0, 2.0, new Rotation2d(0.0));
 
+    // private final Translation2d 
+    //         LOC_FL = new Translation2d(-11.815, -12.059), // (+, +)
+    //         LOC_FR = new Translation2d(-11.765, 12.057),  // (+, -)
+    //         LOC_BL = new Translation2d(11.734, -12.025),  // (-, +)
+    //         LOC_BR = new Translation2d(11.784, 12.027);   // (-, -)
+
     private final Translation2d 
-            LOC_FL = new Translation2d(-11.815, -12.059), // (+, +)
-            LOC_FR = new Translation2d(-11.765, 12.057),  // (+, -)
-            LOC_BL = new Translation2d(11.734, -12.025),  // (-, +)
-            LOC_BR = new Translation2d(11.784, 12.027);   // (-, -)
+            LOC_FL = new Translation2d(11.815, -12.059), // (+, +)
+            LOC_FR = new Translation2d(11.765, 12.057),  // (+, -)
+            LOC_BL = new Translation2d(-11.734, -12.025),  // (-, +)
+            LOC_BR = new Translation2d(-11.784, 12.027);   // (-, -)
 
     public static enum State {
         FIELD_RELATIVE, ROBOT_RELATIVE, ZERO;
@@ -139,12 +145,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public State state = State.FIELD_RELATIVE;
     public ChassisSpeeds inputSpeeds = new ChassisSpeeds(0, 0, 0);
     public boolean isRotationLocked = false;
+    public static final boolean USE_ADVANCED_DRIVE = false;
 
     /**
      * Constructor called on initialization.
      */
     private Drivebase() {
         // Configure the subsystem ShuffleboardTab
+        log = new TorqueLog("Drive");
 
         // Configure the rotational lock PID.
         rotationalPID = TorquePID.create(0.02 / 4.0 / 180 * Math.PI).addDerivative(.001).build();
@@ -160,10 +168,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
         // Configure all the swerve modules            Drive|Turn|Encoder|Offset
-        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10, 0.0,  config);
-        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   11, 0.0, config);
-        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9, 0.0,   config);
-        br = new TorqueSwerveModule2022("Back Right",  7,    8,   12, 0.0, config);
+        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10, -0.747047133743763 + 0.747047133743763,  USE_ADVANCED_DRIVE, config);
+        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   11, -1.968106072639124, USE_ADVANCED_DRIVE, config);
+        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9, 0.747047133743763 + 1.294689867888586, USE_ADVANCED_DRIVE,  config);
+        br = new TorqueSwerveModule2022("Back Right",  7,    8,   12, -1.125952322279112 + 0, USE_ADVANCED_DRIVE, config);
         // The offsets need to be found experimentally.
         // With no power being set to the module position the wheel 100% straight ahead 
         // and the offset is the reading of the cancoder.
@@ -215,6 +223,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         log.log("Gyro Rad.", gyro.getHeadingCCW().getRadians(), 2, 1, TorqueLog.W_TEXT);
 
         log.log("Gyro Dial.", gyro.getHeadingCCW().getDegrees(), 2, 2, TorqueLog.W_GYRO); 
+
+        SmartDashboard.putNumber("X", estTranslation.getX());
+        SmartDashboard.putNumber("Y", estTranslation.getY());
     }
 
     /**
@@ -239,6 +250,15 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             return;
         }
 
+        final double DEADBAND = 0.1;
+        if (Math.abs(inputSpeeds.vxMetersPerSecond) < DEADBAND)
+            inputSpeeds.vxMetersPerSecond = 0;
+            
+        if (Math.abs(inputSpeeds.vyMetersPerSecond) < DEADBAND)
+            inputSpeeds.vyMetersPerSecond = 0;
+
+        //  inputSpeeds.omegaRadiansPerSecond
+
         // Calculate the locked rotation with the PID.
         final double realRotationRadians = gyro.getRotation2d().getRadians();
 
@@ -247,14 +267,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         //             realRotationRadians, lastRotationRadians);
         // else lastRotationRadians = realRotationRadians;
 
-        // // Calculate field relative vectors.
-        // if (state == State.ROBOT_RELATIVE)
-        //         inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
-        //                 inputSpeeds.vxMetersPerSecond,
-        //                 inputSpeeds.vyMetersPerSecond,
-        //                 inputSpeeds.omegaRadiansPerSecond,
-        //                 gyro.getHeadingCCW());  
-        //                 // Or just get counter clockwise LMAO
+        // Calculate field relative vectors.
+        if (state == State.FIELD_RELATIVE)
+                inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
+                        inputSpeeds.vxMetersPerSecond,
+                        inputSpeeds.vyMetersPerSecond,
+                        inputSpeeds.omegaRadiansPerSecond,
+                        gyro.getHeadingCCW());  
+                        // Or just get counter clockwise LMAO
         
         // Convert robot vectors to module vectors.
         swerveStates = kinematics.toSwerveModuleStates(inputSpeeds);

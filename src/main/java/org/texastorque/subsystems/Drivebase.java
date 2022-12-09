@@ -39,6 +39,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.shuffleboard.WidgetType;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import io.github.oblarg.oblog.annotations.Log;
 
 /**
  * The swerve drivebase subsystem.
@@ -99,6 +100,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // PoseEstimator is a more advanced odometry system that uses a Kalman filter to estimate the robot's position
     // It also encorporates other measures like April tag positions
     private final SwerveDrivePoseEstimator poseEstimator;
+
+    @Log.Field2d(name = "Robot Pos")
     private final Field2d fieldMap = new Field2d();
     
     // Matrix constants for the pose estimator.
@@ -138,13 +141,19 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private SwerveModuleState[] swerveStates;
 
     // Fields that store the state of the subsystem 
+    @Log.ToString(name = "Input Speeds")
     public ChassisSpeeds inputSpeeds = new ChassisSpeeds(0, 0, 0);
+
+    @Log.ToString(name = "Requested Rotation")
     public double requestedRotation = 0;
-    public boolean 
-            isZeroingModules = false,
-            isRotationLocked = false,
-            isFieldOriented = false,
-            isDirectRotation = false;
+
+    public boolean isZeroingModules = false;
+
+    @Log.BooleanBox(name = "Rotation Locked")
+    public boolean isRotationLocked = false;
+
+    public boolean isFieldOriented = false;
+    public boolean isDirectRotation = false;
 
     public void setSmartDrive(final boolean useSmartDrive) {
         fr.useSmartDrive = useSmartDrive;
@@ -233,8 +242,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public final void update(final TorqueMode mode) {
         updateFeedback();
 
-        SmartDashboard.putString("Input. Speeds.", TorqueUtil.group(2, 3, 
-                inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond));
+        // SmartDashboard.putString("Input. Speeds.", TorqueUtil.group(2, 3, 
+        //         inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond));
 
         if (isZeroingModules) {
             fl.zero();
@@ -300,9 +309,25 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         resetPose(new Pose2d(translation, gyro.getHeadingCCW()));
     }
 
+    @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
         return poseEstimator.getEstimatedPosition();
+    }
+
+    @Log.ToString(name = "Robot Pose X")
+    private double logPoseX() {
+        return getPose().getTranslation().getX();
+    }
+
+    @Log.ToString(name = "Robot Pose Y")
+    private double logPoseY() {
+        return getPose().getTranslation().getY();
+    }
+    
+    @Log.Dial(name = "Gyro Radians")
+    public double getGyroAngle() {
+        return gyro.getHeadingCCW().getRadians();
     }
 
     public static synchronized final Drivebase getInstance() {

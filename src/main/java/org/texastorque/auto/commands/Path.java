@@ -21,8 +21,6 @@ import org.texastorque.Subsystems;
 import org.texastorque.subsystems.Drivebase;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.control.TorquePID;
-import org.texastorque.torquelib.sensors.TorqueNavXGyro;
-import org.texastorque.torquelib.util.TorqueUtil;
 
 public final class Path extends TorqueCommand implements Subsystems {
     private final PIDController xController = TorquePID.create(1).build();
@@ -59,7 +57,7 @@ public final class Path extends TorqueCommand implements Subsystems {
         timer.reset();
         timer.start();
         if (!resetOdometry) return;
-        drivebase.state = Drivebase.State.FIELD_RELATIVE;
+        drivebase.isFieldOriented = false;
         drivebase.resetPose(extractInitialPose(trajectory));
     }
 

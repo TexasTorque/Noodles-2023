@@ -69,8 +69,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             WIDTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
             LENGTH = Units.inchesToMeters(21.745), // m (swerve to swerve)
 
-            MAX_VELOCITY = 20, // m/s
-            MAX_ACCELERATION = 20, // m/s^2
+            MAX_VELOCITY = 4.522, // m/s
+            MAX_ACCELERATION = 8.958, // m/s^2
             MAX_ANGULAR_VELOCITY = .1 * Math.PI, // rad/s
             MAX_ANGULAR_ACCELERATION = .2 * Math.PI, // rad/s^2
             WHEEL_DIAMETER = Units.inchesToMeters(4.0), // m
@@ -90,10 +90,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             LOC_FR = new Translation2d(11.765, 12.057),  // (+, -)
             LOC_BL = new Translation2d(-11.734, -12.025),  // (-, +)
             LOC_BR = new Translation2d(-11.784, 12.027);   // (-, -)
-
-    public static enum State {
-        FIELD_RELATIVE, ROBOT_RELATIVE, ZERO;
-    }
 
     // This is the kinematics object that calculates the desired wheel speeds
     private final SwerveDriveKinematics kinematics;
@@ -142,10 +138,20 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private SwerveModuleState[] swerveStates;
 
     // Fields that store the state of the subsystem 
-    public State state = State.FIELD_RELATIVE;
     public ChassisSpeeds inputSpeeds = new ChassisSpeeds(0, 0, 0);
-    public boolean isRotationLocked = false;
-    public static final boolean USE_ADVANCED_DRIVE = false;
+    public double requestedRotation = 0;
+    public boolean 
+            isZeroingModules = false,
+            isRotationLocked = false,
+            isFieldOriented = false,
+            isDirectRotation = false;
+
+    public void setSmartDrive(final boolean useSmartDrive) {
+        fr.useSmartDrive = useSmartDrive;
+        fl.useSmartDrive = useSmartDrive;
+        br.useSmartDrive = useSmartDrive;
+        bl.useSmartDrive = useSmartDrive;
+    }
 
     /**
      * Constructor called on initialization.
@@ -168,10 +174,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         config.maxAngularAcceleration = MAX_ANGULAR_ACCELERATION;
 
         // Configure all the swerve modules            Drive|Turn|Encoder|Offset
-        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10, -0.747047133743763 + 0.747047133743763,  USE_ADVANCED_DRIVE, config);
-        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   11, -1.968106072639124, USE_ADVANCED_DRIVE, config);
-        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9, 0.747047133743763 + 1.294689867888586, USE_ADVANCED_DRIVE,  config);
-        br = new TorqueSwerveModule2022("Back Right",  7,    8,   12, -1.125952322279112 + 0, USE_ADVANCED_DRIVE, config);
+        fl = new TorqueSwerveModule2022("Front Left",  3,    4,   10, 0, config);
+        fr = new TorqueSwerveModule2022("Front Right", 5,    6,   11, 0, config);
+        bl = new TorqueSwerveModule2022("Back Left",   1,    2,   9, 0,  config);
+        br = new TorqueSwerveModule2022("Back Right",  7,    8,   12, 0, config);
         // The offsets need to be found experimentally.
         // With no power being set to the module position the wheel 100% straight ahead 
         // and the offset is the reading of the cancoder.
@@ -192,8 +198,18 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      */
     @Override
     public final void initialize(final TorqueMode mode) {
-        mode.onAuto(() -> state = State.ROBOT_RELATIVE);
-        mode.onTeleop(() -> state = State.FIELD_RELATIVE);
+        mode.onAuto(() -> {
+            isZeroingModules = false;
+            isRotationLocked = false;
+            isFieldOriented = false;
+            isDirectRotation = false; 
+        });
+        mode.onTeleop(() -> {
+            isZeroingModules = false;
+            isRotationLocked = true;
+            isFieldOriented = true;
+            isDirectRotation = false; 
+        });
     }
 
     /**
@@ -217,6 +233,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         log.log("Input. Speeds.", speedsLog, 3, 1); // can infer text
 
         log.log("Rot. Locked", isRotationLocked, 1, 1); // can infer bool
+        log.log("Rot. Direct", isDirectRotation, 1, 1);
 
         SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians());
 
@@ -242,7 +259,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         SmartDashboard.putString("Input. Speeds.", TorqueUtil.group(2, 3, 
                 inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond));
 
-        if (state == State.ZERO) {
+        if (isZeroingModules) {
             fl.zero();
             fr.zero();
             bl.zero();
@@ -257,18 +274,21 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         if (Math.abs(inputSpeeds.vyMetersPerSecond) < DEADBAND)
             inputSpeeds.vyMetersPerSecond = 0;
 
-        //  inputSpeeds.omegaRadiansPerSecond
-
         // Calculate the locked rotation with the PID.
         final double realRotationRadians = gyro.getRotation2d().getRadians();
 
-        // if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) == 0)
-        //     inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
-        //             realRotationRadians, lastRotationRadians);
-        // else lastRotationRadians = realRotationRadians;
+        if (isDirectRotation) {
+            inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
+                        realRotationRadians, requestedRotation); 
+        } else {
+            if (isRotationLocked && Math.abs(inputSpeeds.omegaRadiansPerSecond) < DEADBAND)
+                inputSpeeds.omegaRadiansPerSecond = rotationalPID.calculate(
+                        realRotationRadians, lastRotationRadians);
+            else lastRotationRadians = realRotationRadians;
+        }
 
         // Calculate field relative vectors.
-        if (state == State.FIELD_RELATIVE)
+        if (isFieldOriented)
                 inputSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
                         inputSpeeds.vxMetersPerSecond,
                         inputSpeeds.vyMetersPerSecond,

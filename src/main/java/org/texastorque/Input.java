@@ -39,9 +39,12 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
             = new TorqueTraversableSelection<Double>(0, 1.0, 0.75, 0.5, 0.25);
 
     private final TorqueClick toggleRotationLock = new TorqueClick();
+    private final TorqueClick toggleSmartDrive = new TorqueClick();
+    private boolean usingSmartDrive = false;
+    private final TorqueClick toggleIsDirectRotation = new TorqueClick();
+
 
     private void updateDrivebase() { 
-
         final double speedSetting = speedSettings.calculate(driver.isRightBumperDown(), driver.isLeftBumperDown());
 
         final double xVelocity = driver.getLeftYAxis() * Drivebase.MAX_VELOCITY * speedSetting;
@@ -49,12 +52,18 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         final double rotationVelocity = -driver.getRightXAxis() * Drivebase.MAX_ANGULAR_VELOCITY * speedSetting;
 
         drivebase.inputSpeeds = new ChassisSpeeds(xVelocity, yVelocity, rotationVelocity);
+        drivebase.requestedRotation = -Math.atan2(driver.getRightYAxis(), driver.getRightXAxis());
 
-        drivebase.state = driver.isXButtonDown() ? Drivebase.State.ZERO : Drivebase.State.FIELD_RELATIVE;
+        drivebase.isZeroingModules = driver.isXButtonDown();
+
+        if (toggleSmartDrive.calculate(driver.isBButtonDown()))
+            drivebase.setSmartDrive(usingSmartDrive = !usingSmartDrive);
 
         if (toggleRotationLock.calculate(driver.isAButtonDown()))
             drivebase.isRotationLocked = !drivebase.isRotationLocked;
 
+        if (toggleIsDirectRotation.calculate(driver.isYButtonDown()))
+            drivebase.isDirectRotation = !drivebase.isDirectRotation;
     }
 
     public static final synchronized Input getInstance() {

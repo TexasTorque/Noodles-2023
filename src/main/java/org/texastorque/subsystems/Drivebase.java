@@ -172,7 +172,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         rotationalPID.enableContinuousInput(0, Math.PI);
         lastRotationRadians = gyro.getRotation2d().getRadians();
 
-        final var config = TorqueSwerveModuleConfiguration.defaultConfig;
+        final TorqueSwerveModuleConfiguration config = TorqueSwerveModuleConfiguration.defaultConfig;
 
         // Configure the swerve modules based on the drivebase constants.
         config.maxVelocity = MAX_VELOCITY;

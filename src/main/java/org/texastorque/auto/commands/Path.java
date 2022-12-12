@@ -13,9 +13,11 @@ import edu.wpi.first.math.controller.HolonomicDriveController;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import org.texastorque.Subsystems;
 import org.texastorque.subsystems.Drivebase;
@@ -29,8 +31,8 @@ public final class Path extends TorqueCommand implements Subsystems {
     // private final PIDController yController = new PIDController(1, 0, 0);
 
     private final ProfiledPIDController thetaController =
-            new ProfiledPIDController(4, 0, 0, new TrapezoidProfile.Constraints(Drivebase.MAX_ANGULAR_VELOCITY, 
-                    Drivebase.MAX_ANGULAR_ACCELERATION));
+            new ProfiledPIDController(0.01, 0, 0, new TrapezoidProfile.Constraints(Math.PI, 
+                    Math.PI));
     private final HolonomicDriveController controller =
             new HolonomicDriveController(xController, yController, thetaController);
 
@@ -58,14 +60,20 @@ public final class Path extends TorqueCommand implements Subsystems {
         timer.start();
         if (!resetOdometry) return;
         drivebase.isFieldOriented = false;
-        drivebase.resetPose(extractInitialPose(trajectory));
+        // drivebase.resetPose(extractInitialPose(trajectory));
+        // drivebase.resetPose(trajectory.getInitialPose());
+        drivebase.resetPose(new Pose2d(0, 0, new Rotation2d(0)));
     }
 
     @Override
     protected final void continuous() {
         final PathPlannerState current = (PathPlannerState)trajectory.sample(timer.get());
-        final ChassisSpeeds speeds = controller.calculate(drivebase.getPose(), current, current.holonomicRotation);
-        // speeds = new ChassisSpeeds(speeds.vxMetersPerSecond, speeds.vyMetersPerSecond, speeds.omegaRadiansPerSecond);
+        ChassisSpeeds speeds = controller.calculate(drivebase.getPose(), current, current.holonomicRotation);
+        speeds = new ChassisSpeeds(-speeds.vxMetersPerSecond, -speeds.vyMetersPerSecond, speeds.omegaRadiansPerSecond);
+        SmartDashboard.putNumber("ARCS-X", speeds.vxMetersPerSecond);
+        SmartDashboard.putNumber("ARCS-Y", speeds.vyMetersPerSecond);
+        SmartDashboard.putNumber("ARCS-R", speeds.omegaRadiansPerSecond);
+
         drivebase.inputSpeeds = speeds;
     }
 

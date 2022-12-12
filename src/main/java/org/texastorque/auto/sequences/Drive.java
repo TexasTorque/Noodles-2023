@@ -7,11 +7,13 @@
 package org.texastorque.auto.sequences;
 
 import org.texastorque.auto.commands.Path;
+import org.texastorque.auto.commands.Zero;
 import org.texastorque.torquelib.auto.TorqueBlock;
 import org.texastorque.torquelib.auto.TorqueSequence;
 
 public final class Drive extends TorqueSequence {
     public Drive() { 
+        addBlock(new TorqueBlock(new Zero()));
         addBlock(new TorqueBlock(new Path("Test", true, 2, 1))); 
     }
 }

@@ -52,7 +52,10 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         final double rotationVelocity = -driver.getRightXAxis() * Drivebase.MAX_ANGULAR_VELOCITY * speedSetting;
 
         drivebase.inputSpeeds = new ChassisSpeeds(xVelocity, yVelocity, rotationVelocity);
-        drivebase.requestedRotation = -Math.atan2(driver.getRightYAxis(), driver.getRightXAxis());
+
+        drivebase.requestedRotation = Math.PI + Math.atan2(driver.getRightXAxis(), driver.getRightYAxis());
+        if (drivebase.requestedRotation == Math.PI)
+            drivebase.requestedRotation = 0;
 
         drivebase.isZeroingModules = driver.isXButtonDown();
 

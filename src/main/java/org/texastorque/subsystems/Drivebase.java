@@ -228,9 +228,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         });
     }
 
-    public static SwerveModuleState invertSMS(final SwerveModuleState state) {
+    public static SwerveModuleState invertSpeed(final SwerveModuleState state) {
         final var inverted = state;
-        // state.angle = state.angle.times(-1);
         state.speedMetersPerSecond = -state.speedMetersPerSecond;
         return inverted;
     }
@@ -242,8 +241,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private void updateFeedback() {
         SmartDashboard.putNumber("Gyro Angle", gyro.getHeadingCCW().getRadians());
 
-        poseEstimator.update(gyro.getHeadingCCW(), invertSMS(fl.getState()), invertSMS(fr.getState()), 
-                invertSMS(bl.getState()), invertSMS(br.getState()));
+        poseEstimator.update(gyro.getHeadingCCW(), invertSpeed(fl.getState()), invertSpeed(fr.getState()), 
+                invertSpeed(bl.getState()), invertSpeed(br.getState()));
         // poseEstimator.update(gyro.getHeadingCCW(), br.getState(), bl.getState(), fr.getState(), fl.getState());
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
@@ -269,18 +268,10 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         SmartDashboard.putNumber("X", estTranslation.getX());
         SmartDashboard.putNumber("Y", estTranslation.getY());
 
-        SmartDashboard.putBoolean(
-                "isZeroingModules",
-                isZeroingModules);
-        SmartDashboard.putBoolean(
-                "isRotationLocked",
-                isRotationLocked);
-        SmartDashboard.putBoolean(
-                "isFieldOriented",
-                isFieldOriented);
-        SmartDashboard.putBoolean(
-                "isDirectRotation",
-                isDirectRotation);
+        SmartDashboard.putBoolean("isZeroingModules",isZeroingModules);
+        SmartDashboard.putBoolean("isRotationLocked",isRotationLocked);
+        SmartDashboard.putBoolean("isFieldOriented",isFieldOriented);
+        SmartDashboard.putBoolean("isDirectRotation",isDirectRotation);
     }
 
     /**

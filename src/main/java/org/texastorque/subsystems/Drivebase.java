@@ -87,10 +87,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // LOC_BL = new Translation2d(11.734, -12.025), // (-, +)
     // LOC_BR = new Translation2d(11.784, 12.027); // (-, -)
 
-    private final Translation2d LOC_FL = new Translation2d(11.815, -12.059), // (+, +)
-            LOC_FR = new Translation2d(11.765, 12.057), // (+, -)
-            LOC_BL = new Translation2d(-11.734, -12.025), // (-, +)
-            LOC_BR = new Translation2d(-11.784, 12.027); // (-, -)
+    private final Translation2d 
+            LOC_FL = new Translation2d(Units.inchesToMeters(11.815), Units.inchesToMeters(12.059)), // (+, +)
+            LOC_FR = new Translation2d(Units.inchesToMeters(11.765), Units.inchesToMeters(12.057)), // (+, -)
+            LOC_BL = new Translation2d(Units.inchesToMeters(-11.734),  Units.inchesToMeters(-12.025)), // (-, +)
+            LOC_BR = new Translation2d(Units.inchesToMeters(-11.784),  Units.inchesToMeters(12.027)); // (-, -)
 
     // This is the kinematics object that calculates the desired wheel speeds
     private final SwerveDriveKinematics kinematics;

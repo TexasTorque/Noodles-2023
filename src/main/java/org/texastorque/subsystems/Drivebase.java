@@ -47,19 +47,6 @@ import io.github.oblarg.oblog.annotations.Log;
  * The rotation of the drivebase is [0, 2π) radians counterclockwise,
  * with 0 being straight ahead.
  * 
- * 0 or 2π
- * ↑
- * π/2 ← * → 3π/2
- * ↓
- * π
- *
- * -- States --
- * FIELD_RELATIVE Field relative mode, where the robot's heading is relative to
- * the field.
- * ROBOT_RELATIVE Robot relative mode, where the robot's heading is relative to
- * itself.
- * ZERO Sets all encoders back to zero position.
- * 
  * -- Fields --
  * ChassisSpeeds inputSpeeds The requested speeds (x, y, r).
  * boolean isRotationLocked Whether or not the robot's rotation is locked.
@@ -110,7 +97,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private static final Matrix<N1, N1> LOCAL_STDS = new MatBuilder<>(Nat.N1(), Nat.N1()).fill(0.01);
     private static final Matrix<N3, N1> VISION_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.025, 0.025, 0.025);
 
-    // Alternate matricies for the pose estimator.
+    // Alternate matricies for the pose estimator from Binary Batallion.
 
     /**
      * Standard deviations of model states. Increase these numbers to trust your
@@ -150,15 +137,20 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private final PIDController rotationalPID, directRotPID;
     private SwerveModuleState[] swerveStates;
 
-    // Fields that store the state of the subsystem
+    // Fields that store the state of the subsystem 
+    @Log.ToString(name = "Input Speeds")
     public ChassisSpeeds inputSpeeds = new ChassisSpeeds(0, 0, 0);
 
-    // @Log.ToString(name = "Requested Rotation")
+    @Log.ToString(name = "Requested Rotation")
     public double requestedRotation = 0;
-    public boolean isZeroingModules = false,
-            isRotationLocked = false,
-            isFieldOriented = false,
-            isDirectRotation = false;
+
+    public boolean isZeroingModules = false;
+
+    @Log.BooleanBox(name = "Rotation Locked")
+    public boolean isRotationLocked = false;
+
+    public boolean isFieldOriented = false;
+    public boolean isDirectRotation = false; 
 
     public void setSmartDrive(final boolean useSmartDrive) {
         fr.useSmartDrive = useSmartDrive;
@@ -229,7 +221,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     public static SwerveModuleState invertSpeed(final SwerveModuleState state) {
-        final var inverted = state;
+        final SwerveModuleState inverted = state;
         state.speedMetersPerSecond = -state.speedMetersPerSecond;
         return inverted;
     }
@@ -246,32 +238,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         // poseEstimator.update(gyro.getHeadingCCW(), br.getState(), bl.getState(), fr.getState(), fl.getState());
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
-
-        final Translation2d estTranslation = poseEstimator.getEstimatedPosition().getTranslation();
-
-        final String poseLog = TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY());
-        log.log("Est. Pos", poseLog, 3, 1); // can infer text
-
-        final String speedsLog = TorqueUtil.group(2, 3, inputSpeeds.vxMetersPerSecond,
-                inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond);
-        log.log("Input. Speeds.", speedsLog, 3, 1); // can infer text
-
-        log.log("Rot. Locked", isRotationLocked, 1, 1); // can infer bool
-        log.log("Rot. Direct", isDirectRotation, 1, 1);
-
-        SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians());
-
-        log.log("Gyro Rad.", gyro.getHeadingCCW().getRadians(), 2, 1, TorqueLog.W_TEXT);
-
-        log.log("Gyro Dial.", gyro.getHeadingCCW().getDegrees(), 2, 2, TorqueLog.W_GYRO);
-
-        SmartDashboard.putNumber("X", estTranslation.getX());
-        SmartDashboard.putNumber("Y", estTranslation.getY());
-
-        SmartDashboard.putBoolean("isZeroingModules",isZeroingModules);
-        SmartDashboard.putBoolean("isRotationLocked",isRotationLocked);
-        SmartDashboard.putBoolean("isFieldOriented",isFieldOriented);
-        SmartDashboard.putBoolean("isDirectRotation",isDirectRotation);
     }
 
     /**
@@ -361,26 +327,26 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         resetPose(new Pose2d(translation, gyro.getHeadingCCW()));
     }
 
-    // @Log.ToString(name = "Robot Pose")
+    @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
         return poseEstimator.getEstimatedPosition();
     }
 
-    // @Log.ToString(name = "Robot Pose X")
-    // private double logPoseX() {
-    //     return getPose().getTranslation().getX();
-    // }
+    @Log.ToString(name = "Robot Pose X")
+    private double logPoseX() {
+        return getPose().getTranslation().getX();
+    }
 
-    // @Log.ToString(name = "Robot Pose Y")
-    // private double logPoseY() {
-    //     return getPose().getTranslation().getY();
-    // }
+    @Log.ToString(name = "Robot Pose Y")
+    private double logPoseY() {
+        return getPose().getTranslation().getY();
+    }
     
-    // @Log.Dial(name = "Gyro Radians")
-    // public double getGyroAngle() {
-    //     return gyro.getHeadingCCW().getRadians();
-    // }
+    @Log.Dial(name = "Gyro Radians")
+    public double getGyroAngle() {
+        return gyro.getHeadingCCW().getRadians();
+    }
 
     public static synchronized final Drivebase getInstance() {
         return instance == null ? instance = new Drivebase() : instance;

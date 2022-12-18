@@ -229,9 +229,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     }
 
     public static SwerveModuleState invertSpeed(final SwerveModuleState state) {
-        final var inverted = state;
-        state.speedMetersPerSecond = -state.speedMetersPerSecond;
-        return inverted;
+        return state;
     }
 
     /**

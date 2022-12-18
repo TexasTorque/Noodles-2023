@@ -73,8 +73,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
             MAX_VELOCITY = 4.522, // m/s
             MAX_ACCELERATION = 8.958, // m/s^2
-            MAX_ANGULAR_VELOCITY = .1 * Math.PI, // rad/s
-            MAX_ANGULAR_ACCELERATION = .2 * Math.PI, // rad/s^2
+            MAX_ANGULAR_VELOCITY = 2 * Math.PI, // rad/s
+            MAX_ANGULAR_ACCELERATION = 2 * Math.PI, // rad/s^2
             WHEEL_DIAMETER = Units.inchesToMeters(4.0), // m
 
             MAGIC_NUMBER = 34;
@@ -88,7 +88,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // LOC_BR = new Translation2d(11.784, 12.027); // (-, -)
 
     private final Translation2d 
-            LOC_FL = new Translation2d(Units.inchesToMeters(11.815), Units.inchesToMeters(12.059)), // (+, +)
+            LOC_FL = new Translation2d(Units.inchesToMeters(11.815), Units.inchesToMeters(-12.059)), // (+, +)
             LOC_FR = new Translation2d(Units.inchesToMeters(11.765), Units.inchesToMeters(12.057)), // (+, -)
             LOC_BL = new Translation2d(Units.inchesToMeters(-11.734),  Units.inchesToMeters(-12.025)), // (-, +)
             LOC_BR = new Translation2d(Units.inchesToMeters(-11.784),  Units.inchesToMeters(12.027)); // (-, -)
@@ -228,7 +228,8 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         });
     }
 
-    public static SwerveModuleState invertSpeed(final SwerveModuleState state) {
+    public static SwerveModuleState invertSwerveModuleState(final SwerveModuleState state) {
+        state.speedMetersPerSecond = -state.speedMetersPerSecond;
         return state;
     }
 
@@ -239,29 +240,14 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private void updateFeedback() {
         SmartDashboard.putNumber("Gyro Angle", gyro.getHeadingCCW().getRadians());
 
-        poseEstimator.update(gyro.getHeadingCCW(), invertSpeed(fl.getState()), invertSpeed(fr.getState()), 
-                invertSpeed(bl.getState()), invertSpeed(br.getState()));
+        poseEstimator.update(gyro.getHeadingCCW(), invertSwerveModuleState(fl.getState()), invertSwerveModuleState(fr.getState()), 
+                invertSwerveModuleState(bl.getState()), invertSwerveModuleState(br.getState()));
         // poseEstimator.update(gyro.getHeadingCCW(), br.getState(), bl.getState(), fr.getState(), fl.getState());
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
 
         final Translation2d estTranslation = poseEstimator.getEstimatedPosition().getTranslation();
-
-        final String poseLog = TorqueUtil.group(2, 3, estTranslation.getX(), estTranslation.getY());
-        log.log("Est. Pos", poseLog, 3, 1); // can infer text
-
-        final String speedsLog = TorqueUtil.group(2, 3, inputSpeeds.vxMetersPerSecond,
-                inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond);
-        log.log("Input. Speeds.", speedsLog, 3, 1); // can infer text
-
-        log.log("Rot. Locked", isRotationLocked, 1, 1); // can infer bool
-        log.log("Rot. Direct", isDirectRotation, 1, 1);
-
-        SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians());
-
-        log.log("Gyro Rad.", gyro.getHeadingCCW().getRadians(), 2, 1, TorqueLog.W_TEXT);
-
-        log.log("Gyro Dial.", gyro.getHeadingCCW().getDegrees(), 2, 2, TorqueLog.W_GYRO);
+        SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians() / Math.PI);
 
         SmartDashboard.putNumber("X", estTranslation.getX());
         SmartDashboard.putNumber("Y", estTranslation.getY());
@@ -357,6 +343,11 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     public void resetPose(final Translation2d translation) {
         resetPose(new Pose2d(translation, gyro.getHeadingCCW()));
+    }
+
+    public void resetGyro() {
+        gyro.setOffsetCW(new Rotation2d(0));
+
     }
 
     // @Log.ToString(name = "Robot Pose")

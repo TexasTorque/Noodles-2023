@@ -7,6 +7,7 @@
 package org.texastorque;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
@@ -42,7 +43,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     private final TorqueClick toggleSmartDrive = new TorqueClick();
     private boolean usingSmartDrive = false;
     private final TorqueClick toggleIsDirectRotation = new TorqueClick();
-
+    private final TorqueClick resetGyro = new TorqueClick();
+    private final TorqueClick resetPose = new TorqueClick();
 
     private void updateDrivebase() { 
         final double speedSetting = speedSettings.calculate(driver.isRightBumperDown(), driver.isLeftBumperDown());
@@ -67,6 +69,13 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
 
         if (toggleIsDirectRotation.calculate(driver.isYButtonDown()))
             drivebase.isDirectRotation = !drivebase.isDirectRotation;
+
+        if (resetGyro.calculate(driver.isRightCenterButtonPressed()))
+            drivebase.resetGyro();
+
+        if (resetPose.calculate(driver.isLeftCenterButtonPressed()))
+            drivebase.resetPose(new Translation2d(0, 0));
+
     }
 
     public static final synchronized Input getInstance() {

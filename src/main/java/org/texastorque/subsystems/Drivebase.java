@@ -7,6 +7,7 @@
 package org.texastorque.subsystems;
 
 import java.util.Map;
+import java.util.Optional;
 
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
@@ -14,7 +15,9 @@ import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.control.TorquePID;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022.TorqueSwerveModuleConfiguration;
+import org.texastorque.torquelib.sensors.TorqueLight2;
 import org.texastorque.torquelib.sensors.TorqueNavXGyro;
+import org.texastorque.torquelib.sensors.util.TorqueAprilTagMap;
 import org.texastorque.torquelib.util.TorqueLog;
 import org.texastorque.torquelib.util.TorqueUtil;
 
@@ -26,8 +29,12 @@ import edu.wpi.first.math.Vector;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
@@ -167,10 +174,20 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         bl.useSmartDrive = useSmartDrive;
     }
 
+    public final TorqueLight2 camera;
+    public static final String CAMERA_NAME = "unicam";
+    public static final Transform3d CAMERA_TO_CENTER = new Transform3d(
+            new Translation3d(-Units.inchesToMeters(29 * .5), Units.inchesToMeters(19.75), 0),
+            new Rotation3d());
+    public final TorqueAprilTagMap aprilTags;
+
+
     /**
      * Constructor called on initialization.
      */
     private Drivebase() {
+        camera = new TorqueLight2(CAMERA_NAME, CAMERA_TO_CENTER);
+        aprilTags = TorqueAprilTagMap.fromJSON();
 
         // Configure the rotational lock PID.
         rotationalPID = TorquePID.create(0.025).addDerivative(.001).build();
@@ -238,24 +255,26 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
      * and stuff and logs to SmartDashboard and Shuffleboard.
      */
     private void updateFeedback() {
-        SmartDashboard.putNumber("Gyro Angle", gyro.getHeadingCCW().getRadians());
-
+        camera.update();
+    
         poseEstimator.update(gyro.getHeadingCCW(), invertSwerveModuleState(fl.getState()), invertSwerveModuleState(fr.getState()), 
                 invertSwerveModuleState(bl.getState()), invertSwerveModuleState(br.getState()));
-        // poseEstimator.update(gyro.getHeadingCCW(), br.getState(), bl.getState(), fr.getState(), fl.getState());
+
+        SmartDashboard.putString("Pose", poseEstimator.getEstimatedPosition().toString());
+
+        Optional<Transform3d> tranfs = camera.getTransformToAprilTag3d();
+        if (tranfs.isPresent()) {
+            SmartDashboard.putString("Transf", tranfs.get().toString());
+        }
+
+
+        Optional<Pose3d> estimatedPose = camera.getRobotPoseAprilTag3d(aprilTags, 2.0);
+        if (estimatedPose.isPresent()) {
+            final Pose2d pose = estimatedPose.get().toPose2d();
+            poseEstimator.addVisionMeasurement(pose, camera.getLatency());
+        }
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
-
-        final Translation2d estTranslation = poseEstimator.getEstimatedPosition().getTranslation();
-        SmartDashboard.putNumber("Gyro Rads.", gyro.getHeadingCCW().getRadians() / Math.PI);
-
-        SmartDashboard.putNumber("X", estTranslation.getX());
-        SmartDashboard.putNumber("Y", estTranslation.getY());
-
-        SmartDashboard.putBoolean("isZeroingModules",isZeroingModules);
-        SmartDashboard.putBoolean("isRotationLocked",isRotationLocked);
-        SmartDashboard.putBoolean("isFieldOriented",isFieldOriented);
-        SmartDashboard.putBoolean("isDirectRotation",isDirectRotation);
     }
 
     /**
@@ -332,8 +351,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // Interfacing with the robot position estimator.
 
     public void resetPose(final Pose2d pose) {
-        gyro.reset();
-        gyro.setOffsetCCW(pose.getRotation());
+        gyro.setOffsetCW(pose.getRotation());
         poseEstimator.resetPosition(pose, gyro.getHeadingCCW());
     }
 
@@ -350,7 +368,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
     }
 
-    // @Log.ToString(name = "Robot Pose")
+    @Log.ToString(name = "Robot Pose")
     public Pose2d getPose() {
         updateFeedback();
         return poseEstimator.getEstimatedPosition();

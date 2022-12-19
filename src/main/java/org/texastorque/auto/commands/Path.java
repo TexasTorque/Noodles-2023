@@ -20,21 +20,19 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import org.texastorque.Subsystems;
+import org.texastorque.auto.sequences.Drive;
 import org.texastorque.subsystems.Drivebase;
 import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.control.TorquePID;
 
 public final class Path extends TorqueCommand implements Subsystems {
-    private final PIDController xController = TorquePID.create(1).build();
-    private final PIDController yController = TorquePID.create(1).build();
+    private final PIDController xController = TorquePID.create(3).build();
+    private final PIDController yController = TorquePID.create(3).build();
     // private final PIDController xController = new PIDController(1, 0, 0);
     // private final PIDController yController = new PIDController(1, 0, 0);
 
-    private final ProfiledPIDController thetaController =
-            new ProfiledPIDController(0.01, 0, 0, new TrapezoidProfile.Constraints(Math.PI, 
-                    Math.PI));
-    private final HolonomicDriveController controller =
-            new HolonomicDriveController(xController, yController, thetaController);
+    private final ProfiledPIDController thetaController;
+    private final HolonomicDriveController controller;
 
     private final PathPlannerTrajectory trajectory;
     private final Timer timer = new Timer();
@@ -49,18 +47,22 @@ public final class Path extends TorqueCommand implements Subsystems {
     }
 
     public Path(final String name, final boolean reset, final double maxSpeed, final double maxAcceleration) {
-        thetaController.enableContinuousInput(-Math.PI, Math.PI);
         trajectory = PathPlanner.loadPath(name, maxSpeed, maxAcceleration);
         this.resetOdometry = reset;
+
+        thetaController = new ProfiledPIDController(Math.PI * 2, 0, 0, new TrapezoidProfile.Constraints(6 * Math.PI, 
+                    6 * Math.PI));
+        thetaController.enableContinuousInput(-Math.PI, Math.PI);
+        controller = new HolonomicDriveController(xController, yController, thetaController);
     }
 
     @Override
     protected final void init() {
         timer.reset();
         timer.start();
-        if (!resetOdometry) return;
         drivebase.isFieldOriented = false;
-        drivebase.resetPose(trajectory.getInitialPose());
+        if (!resetOdometry) return;
+        drivebase.resetPose(extractInitialPose(trajectory));
     }
 
     @Override

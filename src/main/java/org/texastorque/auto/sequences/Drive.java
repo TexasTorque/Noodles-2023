@@ -6,14 +6,23 @@
  */
 package org.texastorque.auto.sequences;
 
+import org.texastorque.auto.commands.EventPath;
 import org.texastorque.auto.commands.Path;
 import org.texastorque.auto.commands.Zero;
 import org.texastorque.torquelib.auto.TorqueBlock;
+import org.texastorque.torquelib.auto.TorqueCommand;
 import org.texastorque.torquelib.auto.TorqueSequence;
+import org.texastorque.torquelib.auto.commands.TorqueExecute;
 
 public final class Drive extends TorqueSequence {
     public Drive() { 
         addBlock(new TorqueBlock(new Zero()));
-        addBlock(new TorqueBlock(new Path("Test", true, 2, 1))); 
+        final EventPath testPath = new EventPath("Test", true, 2, 1);
+        testPath.addEvent("A", new TorqueExecute(() -> {
+            for (int i = 0; i < 10; i++)
+                System.out.println("AAAAAAAAAA");
+        }));
+        addBlock(new TorqueBlock(testPath));
+
     }
 }

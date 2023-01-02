@@ -11,6 +11,7 @@ import java.util.Optional;
 
 import org.texastorque.Subsystems;
 import org.texastorque.torquelib.base.TorqueMode;
+import org.texastorque.torquelib.base.TorqueRobotBase;
 import org.texastorque.torquelib.base.TorqueSubsystem;
 import org.texastorque.torquelib.control.TorquePID;
 import org.texastorque.torquelib.modules.TorqueSwerveModule2022;
@@ -86,13 +87,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
             MAGIC_NUMBER = 34;
 
-    public static final Pose2d INITIAL_POS = new Pose2d(2.0, 2.0, new Rotation2d(0.0));
-
-    // private final Translation2d
-    // LOC_FL = new Translation2d(-11.815, -12.059), // (+, +)
-    // LOC_FR = new Translation2d(-11.765, 12.057), // (+, -)
-    // LOC_BL = new Translation2d(11.734, -12.025), // (-, +)
-    // LOC_BR = new Translation2d(11.784, 12.027); // (-, -)
+    public static final Pose2d INITIAL_POS = new Pose2d(0.0, 2.0, new Rotation2d(0.0));
 
     private final Translation2d 
             LOC_FL = new Translation2d(Units.inchesToMeters(11.815), Units.inchesToMeters(-12.059)), // (+, +)
@@ -103,8 +98,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     // This is the kinematics object that calculates the desired wheel speeds
     private final SwerveDriveKinematics kinematics;
 
-    // private final TorqueSwerveOdometry odometry;
-
     // PoseEstimator is a more advanced odometry system that uses a Kalman filter to
     // estimate the robot's position
     // It also encorporates other measures like April tag positions
@@ -113,9 +106,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private final Field2d fieldMap = new Field2d();
 
     // Matrix constants for the pose estimator.
-    private static final Matrix<N3, N1> STATE_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.05, 0.05, 0.02);
-    private static final Matrix<N1, N1> LOCAL_STDS = new MatBuilder<>(Nat.N1(), Nat.N1()).fill(0.01);
-    private static final Matrix<N3, N1> VISION_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.025, 0.025, 0.025);
+    private static final Matrix<N3, N1> STATE_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.02, 0.02, Units.degreesToRadians(5));
+    private static final Matrix<N1, N1> LOCAL_STDS = new MatBuilder<>(Nat.N1(), Nat.N1()).fill(Units.degreesToRadians(0.01));
+    private static final Matrix<N3, N1> VISION_STDS = new MatBuilder<>(Nat.N3(), Nat.N1()).fill(0.025, 0.025, Units.degreesToRadians(10));
 
     // Alternate matricies for the pose estimator.
 
@@ -158,9 +151,9 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     private SwerveModuleState[] swerveStates;
 
     // Fields that store the state of the subsystem
+    @Log.ToString(name = "Chassis Speeds")
     public ChassisSpeeds inputSpeeds = new ChassisSpeeds(0, 0, 0);
 
-    // @Log.ToString(name = "Requested Rotation")
     public double requestedRotation = 0;
     public boolean isZeroingModules = false,
             isRotationLocked = false,
@@ -221,9 +214,13 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
 
         poseEstimator = new SwerveDrivePoseEstimator(gyro.getHeadingCCW(),
                 INITIAL_POS, kinematics, STATE_STDS,
-                LOCAL_STDS, VISION_STDS);
+                LOCAL_STDS, VISION_STDS, TorqueRobotBase.PERIOD);
 
         SmartDashboard.putData("Est. Map", fieldMap);
+
+        swerveStates = new SwerveModuleState[4];
+        for (int i = 0; i < swerveStates.length; i++)
+            swerveStates[i] = new SwerveModuleState();
     }
 
     /**
@@ -237,6 +234,7 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             isFieldOriented = false;
             isDirectRotation = false;
         });
+
         mode.onTeleop(() -> {
             isZeroingModules = false;
             isRotationLocked = true;
@@ -260,19 +258,16 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         poseEstimator.update(gyro.getHeadingCCW(), invertSwerveModuleState(fl.getState()), invertSwerveModuleState(fr.getState()), 
                 invertSwerveModuleState(bl.getState()), invertSwerveModuleState(br.getState()));
 
-        SmartDashboard.putString("Pose", poseEstimator.getEstimatedPosition().toString());
+        // Optional<Transform3d> tranfs = camera.getTransformToAprilTag3d();
+        // if (tranfs.isPresent()) {
+        //     SmartDashboard.putString("Transf", tranfs.get().toString());
+        // }
 
-        Optional<Transform3d> tranfs = camera.getTransformToAprilTag3d();
-        if (tranfs.isPresent()) {
-            SmartDashboard.putString("Transf", tranfs.get().toString());
-        }
-
-
-        Optional<Pose3d> estimatedPose = camera.getRobotPoseAprilTag3d(aprilTags, 2.0);
-        if (estimatedPose.isPresent()) {
-            final Pose2d pose = estimatedPose.get().toPose2d();
-            poseEstimator.addVisionMeasurement(pose, camera.getLatency());
-        }
+        // Optional<Pose3d> estimatedPose = camera.getRobotPoseAprilTag3d(aprilTags, .7, 4);
+        // if (estimatedPose.isPresent()) {
+        //     final Pose2d pose = estimatedPose.get().toPose2d();
+        //     poseEstimator.addVisionMeasurement(pose, camera.getLatency());
+        // }
 
         fieldMap.setRobotPose(poseEstimator.getEstimatedPosition());
     }
@@ -288,9 +283,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
     public final void update(final TorqueMode mode) {
         updateFeedback();
 
-        SmartDashboard.putString("Input. Speeds.", TorqueUtil.group(2, 3,
-                inputSpeeds.vxMetersPerSecond, inputSpeeds.vyMetersPerSecond, inputSpeeds.omegaRadiansPerSecond));
-
         if (isZeroingModules) {
             fl.zero();
             fr.zero();
@@ -299,18 +291,17 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
             return;
         }
 
-        final double DEADBAND = 0.1;
-        if (Math.abs(inputSpeeds.vxMetersPerSecond) < DEADBAND)
-            inputSpeeds.vxMetersPerSecond = 0;
-
-        if (Math.abs(inputSpeeds.vyMetersPerSecond) < DEADBAND)
-            inputSpeeds.vyMetersPerSecond = 0;
+        if (inputSpeeds.vxMetersPerSecond == 0 && inputSpeeds.vyMetersPerSecond == 0 
+                && inputSpeeds.omegaRadiansPerSecond == 0) {
+            fl.setDesiredState(new SwerveModuleState(0, swerveStates[0].angle));
+            fr.setDesiredState(new SwerveModuleState(0, swerveStates[1].angle));
+            bl.setDesiredState(new SwerveModuleState(0, swerveStates[2].angle));
+            br.setDesiredState(new SwerveModuleState(0, swerveStates[3].angle));
+            return;
+        }
 
         // Calculate the locked rotation with the PID.
         final double realRotationRadians = gyro.getHeadingCCW().getRadians();
-
-        SmartDashboard.putNumber("Req. Rot PRE", inputSpeeds.omegaRadiansPerSecond);
-        SmartDashboard.putNumber("Y RR", requestedRotation);
 
         if (mode != TorqueMode.AUTO) {
             if (isDirectRotation) {
@@ -325,8 +316,6 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
                     lastRotationRadians = realRotationRadians;
             }
         }
-
-        SmartDashboard.putNumber("Req. Rot POST", inputSpeeds.omegaRadiansPerSecond);
 
         // Calculate field relative vectors.
         if (isFieldOriented)
@@ -374,20 +363,20 @@ public final class Drivebase extends TorqueSubsystem implements Subsystems {
         return poseEstimator.getEstimatedPosition();
     }
 
-    // @Log.ToString(name = "Robot Pose X")
-    // private double logPoseX() {
-    //     return getPose().getTranslation().getX();
-    // }
+    @Log.ToString(name = "Robot Pose X")
+    private double logPoseX() {
+        return getPose().getTranslation().getX();
+    }
 
-    // @Log.ToString(name = "Robot Pose Y")
-    // private double logPoseY() {
-    //     return getPose().getTranslation().getY();
-    // }
+    @Log.ToString(name = "Robot Pose Y")
+    private double logPoseY() {
+        return getPose().getTranslation().getY();
+    }
     
-    // @Log.Dial(name = "Gyro Radians")
-    // public double getGyroAngle() {
-    //     return gyro.getHeadingCCW().getRadians();
-    // }
+    @Log.Dial(name = "Gyro Radians")
+    public double getGyroAngle() {
+        return gyro.getHeadingCCW().getRadians();
+    }
 
     public static synchronized final Drivebase getInstance() {
         return instance == null ? instance = new Drivebase() : instance;

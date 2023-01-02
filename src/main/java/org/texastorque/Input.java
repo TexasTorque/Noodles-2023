@@ -35,9 +35,8 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
         updateDrivebase();
     }
 
-
-    private final TorqueTraversableSelection<Double> speedSettings 
-            = new TorqueTraversableSelection<Double>(0, 1.0, 0.75, 0.5, 0.25);
+    private final TorqueTraversableSelection<Double> speedSettings = new TorqueTraversableSelection<Double>(0, 1.0,
+            0.75, 0.5, 0.25);
 
     private final TorqueClick toggleRotationLock = new TorqueClick();
     private final TorqueClick toggleSmartDrive = new TorqueClick();
@@ -46,12 +45,17 @@ public final class Input extends TorqueInput<TorqueController> implements Subsys
     private final TorqueClick resetGyro = new TorqueClick();
     private final TorqueClick resetPose = new TorqueClick();
 
-    private void updateDrivebase() { 
+    private final static double DEADBAND = 0.05;
+
+    private void updateDrivebase() {
         final double speedSetting = speedSettings.calculate(driver.isRightBumperDown(), driver.isLeftBumperDown());
 
-        final double xVelocity = driver.getLeftYAxis() * Drivebase.MAX_VELOCITY * speedSetting;
-        final double yVelocity = driver.getLeftXAxis() * Drivebase.MAX_VELOCITY * speedSetting;
-        final double rotationVelocity = -driver.getRightXAxis() * Drivebase.MAX_ANGULAR_VELOCITY * speedSetting;
+        final double xVelocity = TorqueMath
+                .scaledDeadband(driver.getLeftYAxis() * Drivebase.MAX_VELOCITY * speedSetting, DEADBAND);
+        final double yVelocity = TorqueMath
+                .scaledDeadband(driver.getLeftXAxis() * Drivebase.MAX_VELOCITY * speedSetting, DEADBAND);
+        final double rotationVelocity = TorqueMath
+                .scaledDeadband(-driver.getRightXAxis() * Drivebase.MAX_ANGULAR_VELOCITY * speedSetting, DEADBAND);
 
         drivebase.inputSpeeds = new ChassisSpeeds(xVelocity, yVelocity, rotationVelocity);
 

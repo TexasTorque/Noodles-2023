@@ -25,11 +25,12 @@ public final class Drive extends TorqueSequence {
         // }));
         // addBlock(new TorqueBlock(testPath));
         // addBlock(new Path("move-tests", true, 1, 1));
-        addBlock(new Path("cool-path-a", true, 2, 1));
+        addBlock(new Path("cool-path-a", true, 1, .5));
         addBlock(new Wait(1));
-        addBlock(new Path("cool-path-b", false, 1.5, 1));
+        // addBlock(new Path("reverse-a", false, 1, .5));
+        addBlock(new Path("cool-path-b", true, 1, .5));
         addBlock(new Wait(1));
-        addBlock(new Path("cool-path-c", false, 2, 1));
+        addBlock(new Path("cool-path-c", true, 1, .5));
 
     }
 }
